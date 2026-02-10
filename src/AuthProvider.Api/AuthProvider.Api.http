@@ -1,0 +1,39 @@
+@AuthProvider.Api_HostAddress = http://localhost:5189
+
+GET {{AuthProvider.Api_HostAddress}}/health
+Accept: application/json
+
+###
+
+POST {{AuthProvider.Api_HostAddress}}/auth/login
+Content-Type: application/json
+X-Client-Type: mobile
+
+{
+  "login_name": "demo",
+  "password": "secret"
+}
+
+###
+
+POST {{AuthProvider.Api_HostAddress}}/auth/refresh
+Content-Type: application/json
+X-Client-Type: mobile
+
+{
+  "refresh_token": "replace-me"
+}
+
+###
+
+POST {{AuthProvider.Api_HostAddress}}/auth/logout
+Content-Type: application/json
+
+{
+  "refresh_token": "replace-me"
+}
+
+###
+
+GET {{AuthProvider.Api_HostAddress}}/auth/me
+Authorization: Bearer replace-me

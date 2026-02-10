@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "NhXipcALxZY96TRIzheW1Zc4gnD4QZike/o6glEtaWY=",
+  "Source": "AuthProvider.Api",
+  "BasePath": "_content/AuthProvider.Api",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}
