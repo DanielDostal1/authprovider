@@ -8,10 +8,12 @@ import {
   tryAcquireRefreshLock,
   waitForChannelMessage,
 } from '../auth/channel'
+import type { TokenUpdate } from '../auth/types'
 
 interface RefreshResponsePayload {
   access_token?: string
   refresh_token?: string
+  expires_at?: string
 }
 
 interface RetriableRequestConfig extends InternalAxiosRequestConfig {
@@ -25,6 +27,7 @@ interface InterceptorOptions {
   setAccessToken: (value: string | null) => void
   setRefreshToken: (value: string | null) => void
   clearAllTokens: () => void
+  onTokenUpdate?: (update: TokenUpdate) => void
   onAuthFailure?: () => void
   onRefreshStateChange?: (isRefreshing: boolean) => void
 }
@@ -46,6 +49,7 @@ export function setupInterceptors({
   setAccessToken,
   setRefreshToken,
   clearAllTokens,
+  onTokenUpdate,
   onAuthFailure,
   onRefreshStateChange,
 }: InterceptorOptions) {
@@ -92,6 +96,11 @@ export function setupInterceptors({
           if (message.refreshToken) {
             setRefreshToken(message.refreshToken)
           }
+          onTokenUpdate?.({
+            accessToken: message.accessToken,
+            refreshToken: message.refreshToken,
+            expiresAt: message.expiresAt,
+          })
 
           requestConfig.headers = requestConfig.headers ?? {}
           requestConfig.headers.Authorization = `Bearer ${message.accessToken}`
@@ -120,6 +129,7 @@ export function setupInterceptors({
 
         const nextAccessToken = refreshData?.access_token
         const nextRefreshToken = refreshData?.refresh_token
+        const nextExpiresAt = typeof refreshData?.expires_at === 'string' ? refreshData.expires_at : null
 
         if (!nextAccessToken) {
           throw failedRequest
@@ -130,7 +140,13 @@ export function setupInterceptors({
           setRefreshToken(nextRefreshToken)
         }
 
-        await broadcastTokens(nextAccessToken, nextRefreshToken ?? null)
+        onTokenUpdate?.({
+          accessToken: nextAccessToken,
+          refreshToken: nextRefreshToken ?? null,
+          expiresAt: nextExpiresAt,
+        })
+
+        await broadcastTokens(nextAccessToken, nextRefreshToken ?? null, nextExpiresAt)
 
         requestConfig.headers = requestConfig.headers ?? {}
         requestConfig.headers.Authorization = `Bearer ${nextAccessToken}`

@@ -10,6 +10,12 @@ export interface TokenResponse {
   expiresAt: string | null
 }
 
+export interface TokenUpdate {
+  accessToken: string | null
+  refreshToken: string | null
+  expiresAt: string | null
+}
+
 export interface LoginInput {
   loginName: string
   password: string
@@ -26,6 +32,8 @@ export interface AuthContextValue {
   isAuthenticated: boolean
   isBootstrapping: boolean
   isRefreshing: boolean
+  accessTokenExpiresAtMs: number | null
+  nextRefreshAtMs: number | null
   clientType: string
   login: (input: LoginInput) => Promise<AuthUser>
   logout: () => Promise<void>

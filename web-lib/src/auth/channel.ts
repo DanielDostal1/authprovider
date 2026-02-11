@@ -1,7 +1,7 @@
 import { BroadcastChannel } from 'broadcast-channel'
 
 export type AuthChannelMessage =
-  | { type: 'tokens'; accessToken: string | null; refreshToken: string | null }
+  | { type: 'tokens'; accessToken: string | null; refreshToken: string | null; expiresAt: string | null }
   | { type: 'logout' }
 
 const CHANNEL_NAME = 'auth_channel'
@@ -32,8 +32,8 @@ export function subscribeAuthChannel(listener: (message: AuthChannelMessage) => 
   }
 }
 
-export async function broadcastTokens(accessToken: string | null, refreshToken: string | null) {
-  await authChannel.postMessage({ type: 'tokens', accessToken, refreshToken })
+export async function broadcastTokens(accessToken: string | null, refreshToken: string | null, expiresAt: string | null) {
+  await authChannel.postMessage({ type: 'tokens', accessToken, refreshToken, expiresAt })
 }
 
 export async function broadcastLogout() {
