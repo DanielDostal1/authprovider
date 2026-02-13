@@ -1,73 +1,181 @@
-# React + TypeScript + Vite
+# @authprovider/auth-client
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Configurable authentication client with:
 
-Currently, two official plugins are available:
+- Axios request auth headers
+- Automatic token refresh with `axios-auth-refresh`
+- Proactive refresh before access token expiry
+- Cross-tab synchronization via `broadcast-channel`
+- Optional React bindings (`AuthProvider`, `useAuth`)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+This package is built for backend contracts that expose:
 
-## React Compiler
+- `POST /auth/login`
+- `POST /auth/refresh`
+- `POST /auth/logout`
+- `GET /auth/me`
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+and return token payloads containing `access_token`, optional `refresh_token`, and `expires_at`.
 
-## Expanding the ESLint configuration
+## Install
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install @authprovider/auth-client
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Core Usage (Framework-agnostic)
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```ts
+import { createAuthClient } from '@authprovider/auth-client'
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
+const auth = createAuthClient({
+  baseURL: 'http://localhost:5002',
+  clientType: 'mobile',
+})
+
+await auth.bootstrap()
+await auth.login({ loginName: 'demo', password: 'secret' })
+
+const user = await auth.me()
+console.log(user)
+```
+
+## React Usage
+
+```tsx
+import { createAuthClient } from '@authprovider/auth-client'
+import { AuthProvider, useAuth } from '@authprovider/auth-client/react'
+
+const authClient = createAuthClient({
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+  clientType: 'mobile',
+})
+
+function LoginButton() {
+  const { login, isAuthenticated } = useAuth()
+
+  if (isAuthenticated) {
+    return null
+  }
+
+  return (
+    <button onClick={() => void login({ loginName: 'demo', password: 'secret' })}>
+      Login
+    </button>
+  )
+}
+
+function Root() {
+  return (
+    <AuthProvider client={authClient}>
+      <LoginButton />
+    </AuthProvider>
+  )
+}
+```
+
+`AuthProvider` bootstraps automatically by default. Set `autoBootstrap={false}` if you want full manual control.
+
+## Configuration
+
+```ts
+import { createAuthClient, localStorageStorage } from '@authprovider/auth-client'
+
+const auth = createAuthClient({
+  baseURL: 'https://api.example.com',
+  clientType: 'web',
+
+  endpoints: {
+    login: '/auth/login',
+    refresh: '/auth/refresh',
+    logout: '/auth/logout',
+    me: '/auth/me',
+  },
+
+  headers: {
+    clientTypeHeader: 'X-Client-Type',
+  },
+
+  refresh: {
+    strategy: 'cookie',
+    withCredentials: true,
+    retryOn401: true,
+  },
+
+  proactiveRefresh: {
+    enabled: true,
+    leadTimeMs: 60_000,
+    jitterMs: 10_000,
+    minIntervalMs: 5_000,
+  },
+
+  multiTab: {
+    enabled: true,
+    channelName: 'auth_channel',
+    lockKey: 'auth.refresh.lock',
+    lockTtlMs: 10_000,
+    waitTimeoutMs: 10_000,
+  },
+
+  storage: {
+    adapter: localStorageStorage('myapp.auth'),
+  },
+
+  hooks: {
+    onAuthFailure: (error) => {
+      console.error('Auth failed', error)
+    },
+    onTokenUpdate: (tokenInfo) => {
+      console.log('Token update', tokenInfo.expiresAt)
     },
   },
-])
+})
+```
+
+## Storage Adapters
+
+Built-in helpers:
+
+- `memoryStorage()` (default)
+- `localStorageStorage(prefix?)`
+
+You can provide your own `AuthStorageAdapter` if needed.
+
+## API Surface
+
+From `@authprovider/auth-client`:
+
+- `createAuthClient(config)`
+- `memoryStorage()`
+- `localStorageStorage(prefix?)`
+
+Client methods:
+
+- `bootstrap()`
+- `login({ loginName, password })`
+- `logout()`
+- `refreshNow()`
+- `me()`
+- `getState()`
+- `subscribe(listener)`
+- `destroy()`
+
+From `@authprovider/auth-client/react`:
+
+- `AuthProvider`
+- `useAuth`
+
+## Security Notes
+
+- For browser apps, prefer `clientType: 'web'` with cookie refresh strategy when your backend supports HttpOnly refresh cookies.
+- Access tokens are automatically refreshed before expiry when proactive refresh is enabled.
+- 401-based refresh fallback remains active for race conditions and browser sleep/wake scenarios.
+
+## Development
+
+```bash
+npm run lint
+npm run typecheck
+npm run build
+npm run audit
 ```

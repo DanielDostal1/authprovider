@@ -36,9 +36,5 @@ export function parseExpiresAt(expiresAt: string | null) {
   }
 
   const parsed = Date.parse(expiresAt)
-  if (Number.isNaN(parsed)) {
-    return null
-  }
-
-  return parsed
+  return Number.isNaN(parsed) ? null : parsed
 }

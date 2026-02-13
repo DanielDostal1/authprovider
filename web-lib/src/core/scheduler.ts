@@ -1,4 +1,4 @@
-interface SchedulerOptions {
+export interface SchedulerOptions {
   leadTimeMs: number
   jitterMs: number
   minIntervalMs: number
@@ -9,12 +9,7 @@ export interface ScheduleResult {
   nextRefreshAtMs: number
 }
 
-export function createProactiveRefreshScheduler({
-  leadTimeMs,
-  jitterMs,
-  minIntervalMs,
-  onTrigger,
-}: SchedulerOptions) {
+export function createScheduler({ leadTimeMs, jitterMs, minIntervalMs, onTrigger }: SchedulerOptions) {
   let timeoutId: number | null = null
 
   const cancel = () => {
@@ -29,16 +24,10 @@ export function createProactiveRefreshScheduler({
 
     const now = Date.now()
     const jitter = jitterMs > 0 ? Math.floor(Math.random() * (jitterMs + 1)) : 0
-    const calculatedAt = expiresAtMs - leadTimeMs - jitter
-
-    let delay = calculatedAt - now
-    if (delay <= 0) {
-      delay = 250
-    } else {
-      delay = Math.max(delay, minIntervalMs)
-    }
-
+    const target = expiresAtMs - leadTimeMs - jitter
+    const delay = target <= now ? 250 : Math.max(target - now, minIntervalMs)
     const nextRefreshAtMs = now + delay
+
     timeoutId = window.setTimeout(() => {
       timeoutId = null
       onTrigger()
@@ -47,13 +36,9 @@ export function createProactiveRefreshScheduler({
     return { nextRefreshAtMs }
   }
 
-  const reschedule = (expiresAtMs: number): ScheduleResult => {
-    return schedule(expiresAtMs)
-  }
-
   return {
     schedule,
-    reschedule,
+    reschedule: schedule,
     cancel,
   }
 }
