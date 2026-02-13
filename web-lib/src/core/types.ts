@@ -1,3 +1,5 @@
+import type { AxiosInstance } from 'axios'
+
 export type ClientType = 'web' | 'mobile'
 
 export interface AuthUser {
@@ -95,6 +97,8 @@ export interface AuthClient {
   logout: () => Promise<void>
   refreshNow: () => Promise<void>
   me: () => Promise<AuthUser>
+  getHttpClient: () => AxiosInstance
+  getRefreshHttpClient: () => AxiosInstance
   getState: () => AuthState
   subscribe: (listener: (state: AuthState) => void) => () => void
   destroy: () => void

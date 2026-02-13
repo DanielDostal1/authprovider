@@ -498,6 +498,10 @@ export function createAuthClient(config: AuthClientConfig): AuthClient {
 
   const getState = () => state
 
+  const getHttpClient = () => http
+
+  const getRefreshHttpClient = () => refreshHttp
+
   const destroy = () => {
     if (destroyed) {
       return
@@ -520,6 +524,8 @@ export function createAuthClient(config: AuthClientConfig): AuthClient {
     logout,
     refreshNow,
     me,
+    getHttpClient,
+    getRefreshHttpClient,
     getState,
     subscribe,
     destroy,

@@ -33,12 +33,20 @@ const auth = createAuthClient({
   clientType: 'mobile',
 })
 
+const http = auth.getHttpClient()
+
 await auth.bootstrap()
 await auth.login({ loginName: 'demo', password: 'secret' })
 
 const user = await auth.me()
 console.log(user)
 ```
+
+You can use `auth.getHttpClient()` as your app's API client. It is already configured with:
+
+- auth request headers
+- automatic 401 refresh handling
+- refresh queueing for concurrent requests
 
 ## React Usage
 
@@ -156,6 +164,8 @@ Client methods:
 - `logout()`
 - `refreshNow()`
 - `me()`
+- `getHttpClient()`
+- `getRefreshHttpClient()`
 - `getState()`
 - `subscribe(listener)`
 - `destroy()`
